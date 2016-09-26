@@ -1,4 +1,4 @@
-defmodule FramingLineTest do
+defmodule FramingModbusTest do
   use ExUnit.Case
   alias Nerves.UART.Framing.Modbus
 
@@ -35,6 +35,13 @@ defmodule FramingLineTest do
   test "deals with extra junk data in one frame" do
     {:ok, line} = Modbus.init(max_length: 255, slave_id: 1)
     assert {:ok, [<<1, 3, 4, 0, 13, 0, 54, 235, 230>>], line} = Modbus.remove_framing(<<1, 3, 4, 0, 13, 0, 54, 235, 230, 5, 5, 5, 5>>, line)
+    assert Modbus.buffer_empty?(line) == true
+  end
+
+  test "handles response from write" do
+    {:ok, line} = Modbus.init(max_length: 255, slave_id: 1)
+
+    assert {:ok, [<<1, 16, 16, 4, 0, 2, 4, 201>>], line} = Modbus.remove_framing(<<1, 16, 16, 4, 0, 2, 4, 201>>, line)
     assert Modbus.buffer_empty?(line) == true
   end
 

@@ -59,13 +59,20 @@ defmodule Nerves.UART.Framing.Modbus do
   end
 
   # if we don't know our expected length, but we have enough data in this packet to find it
-  defp process_data(data, nil, in_process, state) when byte_size(data) >= 3 do
-    <<_slave_id, _cmd, length, _other::binary>> = data
+  defp process_data(<<_slave_id, 3, length, _other::binary>> = data, nil, in_process, state) when byte_size(data) >= 3 do
+    #<<_slave_id, _cmd, length, _other::binary>> = data
     new_state = %{state | expected_length: length}
     process_data(data, length, in_process, new_state)
   end
 
-  # deal with data that's too long 
+  defp process_data(<<_slave_id, 16, _other::binary>> = data, nil, in_process, state) when byte_size(data) >= 3 do
+    length = 3 # this is 3 becuse a "Write multiple registers" is 8 bytes...5 control and 3 payload
+    new_state = %{state | expected_length: length}
+    process_data(data, length, in_process, new_state)
+  end
+
+
+  # deal with data that's too long
   defp process_data(data, expected_length, in_process, state) when (byte_size(in_process <> data) > (expected_length+5)) do
     combined_data = in_process <> data
     relevant_data = Kernel.binary_part(combined_data, 0, expected_length+5) # +5 for the 5 control bytes
